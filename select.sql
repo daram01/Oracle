@@ -317,7 +317,7 @@ from dual;
 
 select 'Welcome to Oracle', replace('Welcome to Oracle', 'to', 'of') -- to 를 of로 바꿔줌. 특정 문자를 다른 문자로 바꾸는 함수
 from dual;
-
+ 
 select 'oracle', lpad('oracle',10,'#'),rpad('oracle',10,'*'), lpad('oracle',10)
 from dual;
 
@@ -362,4 +362,4 @@ from dual;
 
 select *
 from emp
-where mod(empno,2) = 1; -- 홀수인 사원 구하기
+where mod(empno,2) = 1; -- 홀수인 사원 구하기.
