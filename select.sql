@@ -278,3 +278,88 @@ and job in('MANAGER','CLERK')
 and mgr is not null
 and ename not like '_L%';
 
+-- 함수
+-- 문자함수 : upper, lower, substr, instr, replace, lpad, rpad, concat
+-- 숫자함수
+-- 날짜함수
+
+
+-- 문자함수
+select 'Welcome', upper('Welcome')
+from dual;
+
+select lower(ename), upper(ename)
+from emp;
+
+select *
+from emp
+where lower(ename) = 'scott'; -- 괄호 안 문자 데이터를 모두 소문자로 변환하여 반환한다.
+
+select ename, length(ename) -- 괄호 안 컬럼의 문자열 길이가 나옴 
+from emp;
+
+--         1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 양수
+--       -17                                                    -1 음수
+select 'Welcome to Oracle', substr('Welcome to Oracle', 2,3), substr('Welcome to Oracle', 10)
+from dual; --가상테이블
+
+select 'Welcome to Oracle', substr('Welcome to Oracle', -3,3), substr('Welcome to Oracle', -17)
+from dual;
+
+select instr('Welcome to Oracle','e')
+from dual; 
+
+select instr('Welcome to Oracle','e',3)
+from dual; 
+
+select instr('Welcome to Oracle','e',3,2) -- 시작은 3번째부터 하고, 두번째로 e가 나오는 위치
+from dual; 
+
+select 'Welcome to Oracle', replace('Welcome to Oracle', 'to', 'of') -- to 를 of로 바꿔줌. 특정 문자를 다른 문자로 바꾸는 함수
+from dual;
+
+select 'oracle', lpad('oracle',10,'#'),rpad('oracle',10,'*'), lpad('oracle',10)
+from dual;
+
+select rpad('990103-',14,'*')
+from dual;
+
+select concat(empno, ename) - concat --두개의 컬럼이 이어져서 조회된다.
+from emp;
+
+select concat(empno, ename), empno || '' || ename  -- 두개의 함수는 동일함 concat과 || '' ||
+from emp;
+
+
+-- 숫자함수
+select 
+        round(1234.5678), -- 자리수를 정해주지 않으면 소수점 첫째자리에서 반올림 된다.
+        round(1234.5678,0), -- 위와 동일함
+        round(1234.5678,1), -- 소수점 첫번째 자리까지 나타해달라는 뜻. 6에서 반올림이 됨 / 결과값 : 1234.6 
+        round(1234.5678,2), -- 소수점 두번째 자리까지 나타내달라는 뜻. 7에서 반올림 됨 / 결과값 : 1234.57
+        round(1234.5678,-1), -- -1은 그 자리에서 반올림 하라는 뜻. 음수는 정수에서 반올림 한다. / 결과값 : 1230
+        round(1234.5678,-2) -- / 결과값 : 1200
+from dual;
+
+select 
+        trunc(1234.5678), -- 
+        trunc(1234.5678,0), -- 
+        trunc(1234.5678,1), -- 
+        trunc(1234.5678,2), -- 
+        trunc(1234.5678,-1), -- 정수부분에서부터 값을 버리라는 뜻. 결과값 : 1230
+        trunc(1234.5678,-2) -- 
+from dual;
+
+select 
+        ceil(3.14), -- 자신(3.14)보다 큰 가장 가까운 정수 
+        floor(3.14), -- 자신보다 작은 가장 가까운 정수
+        ceil(-3.14),
+        floor(-3.14)
+from dual;
+
+select mod(5,2), mod(10,4) -- 5를 2로 나누었을 때, 10을 4로 나누었을 때 나머지 값 
+from dual;
+
+select *
+from emp
+where mod(empno,2) = 1; -- 홀수인 사원 구하기
