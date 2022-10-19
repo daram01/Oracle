@@ -13,5 +13,5 @@ select  date_of_birth, round((sysdate - date_of_birth) / 365) || '살' as 나이,
                     when round((sysdate - date_of_birth) / 365) between 60 and 69 then '60대'
                     when round((sysdate - date_of_birth) / 365) between 70 and 79 then '70대'
                     else '기타'
-                    end as 연령대
+                    end as 연령대 
 from customers;
