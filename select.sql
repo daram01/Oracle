@@ -363,3 +363,212 @@ from dual;
 select *
 from emp
 where mod(empno,2) = 1; -- 홀수인 사원 구하기.
+
+--2022.10.19
+--날짜함수
+--오늘날짜 구하기
+select sysdate-1, sysdate, sysdate+1
+from dual;
+
+select sysdate - hiredate as 근무일수 --일수를 반환한다.
+from emp;
+
+--근속년수 + 소수점 버리기
+select trunc((sysdate - hiredate) / (365)) as 근무일수
+from emp;
+
+--ROUND함수를 사용하여 날짜 데이터 출력하기 2022.10.19
+select  sysdate,
+            round(sysdate, 'cc') as format_cc,
+            round(sysdate, 'yyyy') as foramt_yyyy,
+            round(sysdate, 'q') as format_q, -- 11월 15일이 안넘었기 때문에..
+            round(sysdate, 'ddd') as format_ddd,
+            round(sysdate, 'hh') as format_hh
+from DUAL;       
+
+select  sysdate,
+            trunc(sysdate, 'cc') as format_cc,
+            trunc(sysdate, 'yyyy') as foramt_yyyy,
+            trunc(sysdate, 'q') as format_q,
+            trunc(sysdate, 'ddd') as format_ddd,
+            trunc(sysdate, 'hh') as format_hh
+from DUAL;       
+
+--자료형변환 함수
+-- to_char() 숫자, 또는 날짜 데이터를 문자 데이터로 변환
+-- to_number()
+-- to_date()
+
+--날짜를 문자로
+select sysdate, to_char(sysdate,'YYYY/MM/DD HH24:MI:SS') as 현재날짜시간
+from dual;
+
+select hiredate, to_char(hiredate,'YYYY/MM/DD HH24:MI:SS:DAY')  as 입사연월일시간요일
+from emp;
+
+--숫자를 문자로
+select to_char(123456, 'L999,999')
+from dual;
+
+select sal, to_char(sal, 'L9,999')
+from emp;
+
+--문자를 숫자로
+--to_number()
+--구성은 반드시 문자와 숫자로 되어있어야 한다.
+select '20,000' - '5,000' -- to_number() 형변환을 해야한다.
+from dual;
+
+select to_number('20,000','999,999') - to_number('5,000','999,999')
+from dual;
+
+
+--문자를 날짜로
+--to_date()
+--문자가 꼭 날짜 형식으로 되어있어야 한다.
+select to_date('20221019','YYYY/MM/DD')
+from dual;
+
+select *
+from emp
+where hiredate < to_date('19820101', 'YYYY/MM/DD');
+
+--null데이터 처리
+--nvl(null(컬럼값),바꾸고싶은데이터)
+--nvl은 null 데이터의 타입과 같은 타입으로 변경해야한다.
+--예) nvl(숫자,숫자) nvl(문자,문자)
+SELECT ename as 사원명, sal, sal * 12 + nvl(comm,0) as 연봉 , comm
+from emp;
+
+select *
+from emp
+where mgr is null;
+                            --숫자를 문자로 바꿔준다.
+select ename,job,nvl(to_char(mgr,'9999'),'CEO') as mgr
+from emp
+where mgr is null;
+
+select comm, nvl2(comm,'O','X')
+FROM EMP;
+
+
+--조건문 표현하는 함수
+--decode() -> swhich
+--case       -> if
+
+select ename, job, deptno,
+                decode(deptno, 10,'AAA','20','BBB','30','CCC','기타') AS 부서명 --deptno가 10인 사람은 AAA 부서, 20인 사람은 BBB로 30인 사람은 CCC 
+from emp;
+
+
+--범위를 조건으로 설정 할 수 있다.
+--case
+--        when 조건식 then 실행문(조건1의 결과 값이 true일 때 반환할 결과)
+--        when 조건식2 then 실행문2(조건2의 결과 값이 true일 때 반환할 결과)
+--        when 조건식3 then 실행문3(조건3의 결과 값이 true일 때 반환할 결과)
+--        else 실행문(위 조건과 일치하는 경우가 없을 때 반환할 결과)
+--end as 별칭
+select ename, job, deptno,
+                case
+                    when deptno = 10 then 'AAA'
+                    when deptno = 20 then 'BBB'
+                    when deptno = 30 then 'CCC'
+                    else '기타'
+                end as 부서명
+from emp;
+
+select ename,job,sal,
+                case 
+                    when sal between 3000 and 5000 then '임원'
+                    when sal >= 2000 and sal < 3000 then '관리자'
+                    when sal >= 500 and sal <2000 then '사원'
+                else '기타'
+                end as 직급
+from emp;
+
+
+
+--1
+select empno,rpad(substr(empno,1,2),4,'*')as masking_empno, ename,rpad(substr(ename,1,1),length(ename),'*')as masking_ename
+from emp
+where length(ename) >= 5
+and length(ename) <6;
+
+--2
+select empno, ename, sal, trunc((sal/21.5),1)as day_pay, round((sal/21.5/8),1) as time_pay
+from emp;
+
+--3
+
+select empno, ename, mgr,
+                case
+                    when mgr is null then '0000'
+                    when substr(mgr,1,2) = '75' then '5555'
+                    when substr(mgr,1,2) = '76' then '6666'
+                    when substr(mgr,1,2) = '77' then '7777'
+                    when substr(mgr,1,2) = '78' then '8888'
+                    else to_char(mgr)
+                    end as CHG_MGR
+from  emp;
+
+--다중행함수
+-- sum(), avg(), max(), min(), count() 의 특징
+--일반컬럼과 같이 사용 불가 예)select max(sal), min(sal) 
+--크기비교가 가능하기 때문에 모든 타입에 사용 가능
+
+
+select sum(sal) -- 사원들의 급여 총합
+from emp;
+
+select avg(sal) -- 사원들의 급여 평균
+from emp;
+
+select count(*), count(comm) -- 전체 레코드의 갯수
+from emp;
+
+select max(sal), min(sal) -- 에러
+from emp;
+
+select ename, max(sal) -- 에러 ename은 14고 max는 1이기 때문에.
+from emp;
+
+select min(hiredate), max(hiredate)
+from emp
+where deptno = 10;
+
+-- select 컬럼명
+-- from 테이블명
+-- while 조건식 (그룹함수 사용불가/group by, hiving 보다 먼저 실행한다.)
+-- group by 기준컬럼명
+-- having (group by 에 대한 조건식)
+-- order by 컬럼명 정렬방식 > order by는 반드시 맨 마지막에 작성한다.
+
+select avg(sal), '10' AS DEPTNO  from emp where deptno = 10
+UNION ALL
+select avg(sal), '20' AS DEPTNO from emp where deptno = 20
+UNION ALL
+select avg(sal), '30' AS DEPTNO from emp where deptno = 30;
+
+select avg(sal), deptno
+from emp
+GROUP BY deptno
+order by deptno;
+
+select deptno, job, avg(sal)
+from emp
+group by deptno,job -- 부서로 한 번 묶고, 직업으로 한번 더 묶는다. 
+order by deptno, job;
+
+--급여에 대한 평균
+select deptno, avg(sal)
+from emp
+GROUP BY deptno
+having avg(sal) > 2000; -- having > group by에 의해서 조회된 결과에 조건을 준다.
+                                       -- 조건식을 작성할 때, 그룹함수를 사용한다.
+                                       
+--where절과  group by , having 같이 쓰는 경우 where절이 제일 먼저 실행되기 때문에 값이 달라진다.
+SELECT deptno, avg(sal)
+from emp
+--where deptno !=10
+group by deptno
+having avg(sal) >= 2000;
