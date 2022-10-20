@@ -572,3 +572,237 @@ from emp
 --where deptno !=10
 group by deptno
 having avg(sal) >= 2000;
+
+
+-- 2022.10.20
+
+--조인(Join)
+--2개 이상의 테이블에서 데이터를 조회
+-- from절에 2개 이상의 테이블을 작성한다.
+-- where절에 조인 조건을 작성해야 한다.
+-- cross join (where절 없이 조인) 잘 사용 안하기 때문에 개념만 알아둘 것
+-- equi join (where 등가연산자(=)를 사용한다.) ★가장 많이 쓰인다
+-- non eaui join (where 범위연산자 : and, or)
+-- self join (where 하나의 테이블을 사용한다.)
+-- out join (where에 누락되는 데이터를 같이 조회하려고 할 때 (+)를 사용한다.)
+
+-- equi join 예)
+select ename,job,e.deptno,dname,loc -- 양쪽에 똑같은 이름의 컬럼이 있을 경우, 어느 테이블에서 정보를 가져올 건지 적어야 한다. 
+from emp e, dept d -- 테이블에 별칭을 주는 방법.
+where e.deptno = d.deptno -- 등가연산자(=)로 공통 컬럼을 찾을 때 까지 하나하나 비교 후, 같은 값이 있으면 정보를 불러온다.
+order by deptno;
+
+
+select ename,job,e.deptno,sal,dname,loc
+from emp e, dept d 
+where e.deptno = d.deptno
+and sal >= 3000 -- 조건 연산자도 사용 가능하다.
+order by deptno;
+
+-- non equi join 예)
+--사원의 급여를 가지고 몇등급인지 알아보기
+select ename, sal, grade, losal, hisal
+from emp e, salgrade s
+where e.sal between s.losal and s.hisal;
+--where e.sal >= s.losal and e.sal <=s.hisal; -- 이 where절로도 사용 가능하지만 위의 where절을 더 권장함. 코드가 간결하기 때문이다.
+
+--사원의 사번, 이름, 급여, 부서번호, 부서명, 급여 등급
+select empno, ename, sal, d.deptno, dname, grade
+from emp e, dept d, salgrade s
+where e.deptno = d.deptno
+and e.sal between s.losal and s.hisal; 
+
+-- self join
+-- 한 테이블에 있는 사원의 사번, 이름, 상사의 사번, 상사의 이름을 한번에 조회하기
+select e.empno, e.ename, e.mgr, m.ename
+from emp e, emp m -- 같은 테이블로 조회하는 것이기 때문에 반드시 별칭을 부여해야 한다.
+where e.mgr = m.empno;
+
+--scott과 같은 부서에 근무하는 사원을 조회하기
+select work.ename, friend.ename
+from emp work, emp friend
+where work.deptno = friend.deptno
+and work.ename = 'SCOTT'
+and friend.ename != 'SCOTT';
+
+--외부조인
+--등가시 누락되는 데이터를 같이 조회하기 위해서 사용한다.
+select e.empno, e.ename, e.mgr, m.ename
+from emp e, emp m
+where e.mgr = m.empno(+); -- (+) 아웃 조인의 표현방법. 데이터가 없는 테이블쪽에 (+)를 붙인다.
+
+select ename, sal, d.deptno, dname
+from emp e, dept d
+where e.deptno(+) = d.deptno;
+
+--ANSI-JOIN(표준조인 방식)
+--cross join
+--inner join ( equi, non equi, self )
+--outer join ( (+) ) - left, rigth , full(누락된 데이터 모두를 조회해준다.) outer join
+--nature join
+select ename, sal, dname, loc
+from emp e INNER JOIN dept d
+on e.deptno = d.deptno;
+
+select ename, sal, dname, loc
+from emp e INNER JOIN dept d
+using(deptno) -- 양쪽 테이블의 컬럼명이 동일하다는 가정하에만 가능하다.
+where ename = 'SCOTT';
+
+select e.empno, e.ename, e.mgr, m.ename
+from emp e inner join emp m
+on e.mgr = m.empno;
+
+select empno,ename,sal,grade
+from emp e inner join salgrade s
+on e.sal between s.losal and s.hisal;
+
+select e.empno, e.ename, e.mgr, m.ename
+from emp e left outer join emp m -- outer join ->데이터가 있는 쪽을 지정해주면 됨.
+on e.mgr = m.empno;
+
+select empno,ename,sal,d.deptno,dname,grade
+from emp e inner join dept d
+on e.deptno = d.deptno 
+inner join salgrade s
+on e.sal BETWEEN s.losal and s.hisal;
+
+select ename, sal, d.deptno, dname
+from emp e, dept d
+where e.deptno(+) = d.deptno;
+
+select ename, sal,d.deptno, dname
+from emp e right outer join dept d
+on e.deptno = d.deptno;
+
+--1번
+
+select d.deptno, d.dname, e.empno, e.ename, e.sal
+from emp e inner join dept d
+on e.deptno = d.deptno --등가연산자(=)로 공통 컬럼을 찾을 때 까지 하나하나 비교 후, 같은 값이 있으면 정보를 불러온다.
+where e.sal > 2000;
+
+-- 2번
+select 
+    e.deptno, 
+    d.dname, 
+    trunc(avg(sal)),
+    max(sal) as mas_sal, 
+    min(sal) as min_sal,
+    count(*) as cnt
+from emp e inner join dept d 
+on e.deptno = d.deptno 
+--using(deptno) -- 별칭 사용시 적용이 제한된다.
+group by e.deptno, d.dname;
+
+--3번
+select d.deptno, d.dname, e.empno, e.ename,e.job,e.sal
+from emp e right outer join dept d
+on e.deptno = d.deptno
+order by d.deptno, e.ename;
+
+--4번
+select d.deptno, d.dname,
+          e.empno, e.ename, e.mgr, e.sal, e.deptno,
+          s.losal, s.hisal, s.grade,
+          m.empno, m.ename
+from emp e right outer join dept d
+on e.deptno = d.deptno -- 두개를 비교한다는 뜻
+full outer join salgrade s
+on e.sal between s.losal and s.hisal
+left outer join emp m
+on e.mgr = m.empno
+order by d.deptno, e.empno;
+
+--서브 쿼리
+--쿼리 안에 쿼리를 또 쓰는 것.
+--select 구문을 중첩해서 사용하는 것.
+--select (select) 일반 서브쿼리
+--from (select) 인라인뷰
+--where (select)  서브쿼리
+--select, from , where 모두 중첩 가능하지만 보통 where절에 사용하는 걸 서브쿼리라고 한다.
+
+select ename, max(sal)
+from emp;
+
+--급여를 가장 많이 받는 사람의 이름과 급여 구하기. 
+select ename, sal
+from emp
+where sal = (
+                        select max(sal)
+                        from emp
+                        );
+
+--문제 > scott이라는 사람의 근무지 부서명을 조회하고 싶다.
+select deptno
+from emp
+where ename = 'SCOTT'; -- 이렇게 하면 SCOTT의 부서번호를 알 수 있다.
+
+select dname
+from dept
+where deptno = 20; 
+
+select dname
+from dept --부서명을 알고 싶으니까 dept
+where deptno = ( 
+            select deptno
+            from emp
+            where ename = 'SCOTT'
+            );
+            
+--문제 > 델란스에 근무하고 있는 사람의 이름, 부서번호를 조회하고 싶다.
+select ename, deptno
+from emp
+where deptno = (
+                            select deptno
+                            from dept
+                            where loc = 'DALLAS'
+                            );
+                            
+--문제 > 자신의 직속상관이 KING인 사원의 이름과 급여를 조회하세요. (서브쿼리문으로)
+select ename, sal, mgr
+from emp
+where mgr = (
+                        select empno
+                        from emp
+                        where ename = 'KING' 
+                        );
+                        
+                        
+--단일행 서브쿼리 : =, !=, >, < ...
+--다중행 서브쿼리 : any ... 
+--in : 결과 중에 하나만 만족하면 된다
+-- > any : 결과 중에 가장 작은 값 보다 크면 된다
+-- > all : 결과 중에 가장 큰 값보다 크면 된다
+select *
+from emp
+where sal in ( 
+                        select max(sal)
+                        from emp
+                        group by deptno
+                        );
+                        
+select *
+from emp
+where sal > any ( -- > 가장 작은 값보다 크면 조회가 된다. < 가장 큰 값보다  작은 값이 조회가 된다.
+                        select max(sal)
+                        from emp
+                        group by deptno
+                        );
+                        
+select *
+from emp
+where sal > all ( 
+                        select sal
+                        from emp
+                        where deptno = 30
+                        );
+
+--다중열 서브쿼리
+select *
+from emp
+where (deptno,sal) in (
+                                        select deptno, max(sal)
+                                        from emp
+                                        group by deptno
+                                        );
