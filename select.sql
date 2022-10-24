@@ -1121,18 +1121,22 @@ purge recyclebin;
 --제약조건
 --테이블을 만들 때 사용하는 것
 --제약조건은 무결성을 구현하기 위하여 설정하는 것이며, 무결성이란 잘못된 값이 데이터로 사용되지 못하게 하는 것이다.
---not null
---unique
---primary key (기본키)
---foreign key
---check
+--not null - null데이터를 허용하지 않는다.
+--unique - 지정한 열이 유일한 값을 가져야 한다.
+--primary key (기본키) - 유일하면서도 null 데이터를 허용하지 않는다.
+--foreign key (외래키) - 다른 테이블의 열을 참조하여 존재하는 값만 허용한다.
+-- 1. 부모와 자식의 관계를 가지고 있을 때,  자식쪽 테이블에 설정한다.
+-- 2. 부모쪽 테이블의 컬럼은 반드시 primary key 또는 unique 해야한다.
+-- 3. null데이터를 허용한다.
+--check 
+--default
 
 -- emp, dept
 insert into emp
 values (1111,'aaa','MANAGER','9999',SYSDATE,1000,NULL,50);
 --오류 보고 -
 --ORA-02291: 무결성 제약조건(SCOTT.FK_DEPTNO)이 위배되었습니다- 부모 키가 없습니다
---마지막에 입력된 부서번호 50이기 때문이다. dept의 부서번호에도 50은 없음.
+--마지막에 입력된 부서번호가 50이기 때문이다. dept의 부서번호에도 50은 없음.
 
 drop table emp02; -- 테이블 삭제
 
@@ -1231,3 +1235,309 @@ insert into emp02
 values (2222,'옥동자','SALESMAN',10);
 --오류 보고 -
 --ORA-00001: 무결성 제약 조건(SCOTT.EMP02_EMPNO_PK)에 위배됩니다
+
+
+
+--2022.10.24
+--foreign key (참조키) - 자식테이블에 fk 설정
+create table emp03(
+    empno number(4) constraint emp03_empno_pk  primary key ,
+    ename varchar2(10) constraint emp03_ename_nn not null ,
+    job varchar2(9),
+    deptno number(2) constraint emp03_deptno_fk references dept03(deptno)
+    );
+    
+create table dept03(
+    deptno number(2) constraint dept03_deptno_pk primary key, -- 부모쪽에 반드시 프라이머리 키 설정을 해야한다.
+    dname varchar2(20) constraint dept03_dname_nn not null,
+    loc varchar2(20) constraint dept03_loc_nn not null
+    );
+
+-- 서브쿼리문을 사용한 데이터 삽입
+-- 꼭 부모테이블부터 데이터 삽입을 해줘야 한다.
+insert into dept03 
+select * from dept;
+
+insert into emp03
+select empno, ename, job, deptno from emp;
+
+insert into emp03
+values (1111,'aaa','MANAGER',50);
+
+--check 
+create table emp04(
+    empno number(4) primary key,
+    ename varchar2(10) not null,
+    sal number(7) constraint emp03_sal_ck check(sal between 500 and 5000),
+    gender varchar2(2) constraint emp03_gender_ck check (gender in('M','F'))
+);
+
+select * from emp04;
+
+insert into emp04
+values (1111,'HONG',1000,'F');
+
+insert into emp04
+values (2222,'HONG',200,'M');
+-- ORA-02290: 체크 제약조건(SCOTT.EMP03_SAL_CK)이 위배되었습니다
+
+insert into emp04
+values (3333,'HONG',2000,'E');
+--ORA-02290: 체크 제약조건(SCOTT.EMP03_GENDER_CK)이 위배되었습니다
+
+--default
+create table dept04(
+    deptno number(2) primary key,
+    dname varchar2(10) not null,
+    loc varchar2(15) default 'SEOUL'
+);
+
+insert into dept04 (deptno, dname)
+values (10, 'SALES');
+
+insert into dept04 (deptno, dname, loc)
+values (20, 'SALES','BUSAN'); -- 기본값은 서울이지만, 내가 직접 지정하여 데이터를 넣어주면 넣어준 데이터로 출력이 된다.
+
+select * from dept04;
+
+--제약조건 설정방식
+--컬럼 레벨의 설정 (위에서 해왔던 방식이 컬럼 레벨의 설정)
+--테이블 레벨의 설정
+
+--테이블 레벨의 설정 방식 ( not null 은 테이블 레벨 설정에서는 불가능하며, 컬럼 레벨에서만 가능하다.)
+--컬럼을 다 정의하고 나서 , 붙인 뒤 아래에 제약조건을 붙인다.
+create table emp05(
+    empno number(4),
+    ename varchar2(20) constraint emp05_ename_nn not null,
+    job varchar2(20),
+    deptno number(20),
+    
+    constraint emp05_empno_pk primary key(empno),
+    constraint emp05_job_uk unique(job),
+    constraint emp05_deptno_fk foreign key(deptno) references dept(deptno)
+);
+
+insert into emp05
+values (1111,'SASA','SALESMAN',80);
+--ORA-02291: 무결성 제약조건(SCOTT.EMP05_DEPTNO_FK)이 위배되었습니다- 부모 키가 없습니다
+
+
+-- 복합키(기본키를 두개의 컬럼에 사용하는 경우)
+-- 테이블 레벨 방식으로만 적용 가능
+--1. 테이블안에서 정의하는 방식
+--2. alter 명령어 사용하는 방식 ( 제약조건을 걸지 않은 상태에서 테이블을 만든 후 추후에 추가해야 할 때 )
+
+create table member(
+    name varchar2(10),
+    address varchar2(30),
+    hphone varchar(10),
+    
+    constraint member_name_address_pk primary key(name, address), -- 복합키로 묶는다. 
+    constraint member_hphone_uk unique(hphone)
+);
+
+create table emp06(
+    empno number(4),
+    ename varchar2(20),
+    job varchar2(20),
+    deptno number(20)
+);
+
+alter table emp06
+add constraint emp06_empno_pk primary key (empno);
+
+alter table emp06
+add constraint emp06_deptno_fk foreign key(deptno) references dept(deptno);
+
+-- not null은 변경의 개념으로 사용한다.( null -> not null )
+alter table emp06
+modify job constraint emp06_job_nn not null;
+
+alter table emp06
+modify ename constraint emp06_ename_nn not null;
+
+-- 제약조건 삭제하는 방법
+-- 제약조건명(constraint 뒤에 있는 조건명) 또는 제약조건(pk,fk,nn) 두가지 방식이 있지만 제약조건명을 사용하는게 확실하다.
+alter table emp06
+drop constraint emp06_empno_pk;
+
+--삭제했던 제약조건 다시 부여하기
+alter table emp06
+add constraint emp06_empno_pk primary key (empno);
+
+
+create table emp07(
+    empno number(4),
+    ename varchar2(20),
+    job varchar2(20),
+    deptno number(20)
+);
+
+alter table emp07
+add constraint emp07_empno_pk primary key (empno);
+
+alter table emp07
+add constraint emp07_deptno_fk foreign key(deptno) references dept07(deptno);
+
+create table dept07(
+    deptno number(2),
+    dname varchar2(10),
+    loc varchar2(15)
+);
+
+alter table dept07
+add constraint dept07_deptno_pk primary key (deptno);
+
+insert into dept07
+select * from dept;
+
+insert into emp07
+select empno, ename, job, deptno  from emp;
+
+-- 부모쪽 데이터 삭제하기
+delete from dept07
+where deptno = 10;
+-- ORA-02292: 무결성 제약조건(SCOTT.EMP07_DEPTNO_FK)이 위배되었습니다- 자식 레코드가 발견되었습니다
+-- 자식이 참조하고 있기 때문에 데이터를 지울 수 없다.
+-- 굳이 사용하지 않으려고 한다면 비활성화를 사용한다.
+
+--비활성화 하는 방법
+alter table dept07
+disable primary key cascade;
+
+--제약조건 완전 삭제
+alter table dept07
+drop primary key cascade;
+
+
+--연습문제
+create table dept_const(
+    deptno number(2),
+    dname varchar2(14),
+    loc varchar2(13)
+);
+
+alter table dept_const
+add constraint deptconst_deptno_pk primary key(deptno);
+
+alter table dept_const
+add constraint deptconst_dname_unq unique(dname);
+
+alter table dept_const
+modify loc constraint deptconst_loc_nn not null;
+
+
+create table emp_const(
+    empno number(4),
+    ename varchar2(10),
+    job varchar2(9),
+    tel varchar2(20),
+    hiredate date,
+    sal number(7,2),
+    comm number(7,2),
+    deptno number(2)
+);
+
+alter table emp_const
+add constraint empconst_empno_pk primary key(empno);
+
+alter table emp_const
+modify ename constraint empconst_ename_nn not null;
+
+alter table emp_const
+add constraint empconst_tel_unq unique(tel);
+
+alter table emp_const
+add constraint empconst_sal_ck check(sal between 1000 and 9999);
+
+alter table emp_const
+add constraint empconst_deptno_fk foreign key(deptno) references dept_const(deptno);
+
+insert into emp_const
+values (1111,'HONG','MANAGER','010-1111-1111',SYSDATE,100,1000,10);
+
+
+
+
+-- 뷰
+-- 객체 : table, index, view 
+-- create or replace view 뷰테이블이름 [(alias별칭)]
+-- as 
+-- 서브쿼리(select)
+-- [with check option]
+-- [with read only]
+-- alias, with check option, with read only 는 선택. 나머지는 필수
+
+-- 단일뷰
+-- 원본테이블 복사 
+create table dept_copy
+as
+select * from dept;
+
+create table emp_copy -- 복사되는 테이블은 제약조건이 안 넘어온다.
+as
+select * from emp;
+
+-- 복사테이블이기 때문에 제약조건 직접 만들어 주기
+alter table emp_copy
+add constraint emp_copy_deptno_fk foreign key(deptno) references dept(deptno);
+
+
+
+--view 테이블 생성
+create or replace view emp_view30 -- 30번 부서에게만 보여줄 테이블
+as
+select empno, ename, sal, deptno 
+from emp_copy
+where deptno = 30;
+
+-- 테이블 조회하는 방법
+select * from emp_view30;
+
+insert into emp_view30
+values (1111,'HONG',1000,30); -- emp_view30 에 실제로 존재하는건 아니고, emp_copy(원본파일)에 데이터가 생성되어져있다.
+
+insert into emp_view30(empno,ename,sal)
+values (2222,'HONG',2000); --foreign key가 null데이터를 허용하기 때문에 emp_copy에 데이터 생성됨.
+-- 부서번호가 null이기 때문에 뷰 테이블 조회를 하면 보여지지 않음.
+
+insert into emp_view30
+values (3333,'HONG',2000,50);
+--ORA-02291: 무결성 제약조건(SCOTT.EMP_COPY_DEPTNO_FK)이 위배되었습니다- 부모 키가 없습니다
+
+select * from emp_copy;
+
+create or replace view emp_view(사원번호,사원명,급여,부서번호)
+as
+select empno, ename, sal, deptno
+from emp_copy;
+--사원번호와  empno, 사원명과 ename... 이런식으로 1:1 매칭되며 원래 사용하던 empno... 는 사용 불가임
+
+select * from emp_view; -- 컬럼이름이 한글로 되어있음.
+
+select * 
+from emp_view
+where 부서번호 = 30;
+
+
+-- 복합뷰
+create or replace view emp_dept_view
+as
+select empno, ename, sal, e.deptno, d.dname, d.loc
+from emp_copy e inner join dept_copy d
+on e.deptno = d.deptno
+order by empno desc;
+
+select * from emp_dept_view;
+
+-- 부서별 최소급여와 최대급여를 구해라.(view)
+-- dname, min_sal, max_sal 
+
+create or replace view sal_view
+as
+select dname, min(sal) as min_sal, max(sal) as max_sal
+from emp_copy e inner join dept_copy d
+on e.deptno = d.deptno
+group by d.dname;
+
+select * from sal_view;
