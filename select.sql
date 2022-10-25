@@ -1504,6 +1504,7 @@ values (2222,'HONG',2000); --foreign key가 null데이터를 허용하기 때문에 emp_copy
 insert into emp_view30
 values (3333,'HONG',2000,50);
 --ORA-02291: 무결성 제약조건(SCOTT.EMP_COPY_DEPTNO_FK)이 위배되었습니다- 부모 키가 없습니다
+--원본테이블에 데이터가 들어가는 것이기 때문이다.
 
 select * from emp_copy;
 
@@ -1541,3 +1542,218 @@ on e.deptno = d.deptno
 group by d.dname;
 
 select * from sal_view;
+
+drop view sal_view; --뷰 삭제
+
+
+-- 2022.10.25
+-- 모든 객체의 이름은 중복될 수 없다. 유일해야 함.
+-- 그러나, 이미 뷰를 만들고 나서 조건을 추가하고 싶거나, 변경될 내용이 있을 경우에도 or replace가 있기 때문에 가능하다. (덮어쓰기)
+create or replace view sal_view
+as
+select dname, min(sal) as min_sal, max(sal) as max_sal, avg(sal) as avg
+from emp_copy e inner join dept_copy d
+on e.deptno = d.deptno
+group by d.dname;
+
+
+-- [with check option]
+--현재 사용된 조건절의 컬럼을 수정, 변경 하지 못하게 하는 것. 
+create or replace view view_chk30 -- 30번 부서만 볼 수 있는 뷰
+as
+select empno, ename, sal, comm, deptno
+from emp_copy
+where deptno = 30 with check option; 
+
+update view_chk30 -- 만약 이렇게 10번으로 수정해버리면, 위의 뷰테이블은 존재하지 않게 된다.
+set deptno = 10;
+--ORA-01402: 뷰의 WITH CHECK OPTION의 조건에 위배 됩니다. ( with check option 때문에 오류 발생)
+
+
+
+-- [with read only]
+-- 모든 컬럼에 대한 c, u, d 가 불가하다. 오로지 r(데이터 조회)만 가능함.
+create or replace view view_read30
+as
+select empno, ename, sal, comm, deptno
+from emp_copy
+where deptno = 30 with read only;
+
+update view_read30
+set deptno = 10;
+--읽기 전용 뷰에서는 DML 작업을 수행할 수 없습니다.(insert, update, delete)
+
+
+-- 뷰의 활용
+-- TOP - N 조회하기
+select * from emp
+order by hiredate asc;
+
+-- 입사일이 가장 빠른 5명의 사원을 조회 
+select * from emp
+order by hiredate asc;
+
+select * from emp
+where hiredate <= '81/05/01';
+
+desc emp;
+
+select rownum,empno,ename,hiredate
+from emp
+where rownum <=5;
+
+select rownum,empno,ename,hiredate
+from emp
+where rownum <= 5
+order by hiredate asc;
+-- 위의 두 가지 방법을 이용해도 입사일이 가장 빠른 5명을 조회하기는 어려움.
+
+
+
+create or replace view view_hiredate
+as
+select empno,ename,hiredate
+from emp
+order by hiredate asc;
+
+select * from view_hiredate;
+
+select rownum,empno, ename, hiredate
+from view_hiredate
+where rownum <=7;
+
+-- 입사일이 2번째에서 5번째인 사람만 조회하기
+select rownum,empno, ename, hiredate
+from view_hiredate
+where rownum between 2 and 5 ; --rownum은 조건절에 직접 사용시 반드시 1을 포함하는 조건식을 만들어야 한다. 그래서 아무것도 안뜸
+
+create or replace view view_hiredate_rm
+as
+select rownum rm,empno, ename, hiredate -- rownum의 별칭을 만들어서 새롭게 뷰테이블 생성을 한다.
+from view_hiredate;
+
+select rm,empno,ename,hiredate
+from view_hiredate_rm
+where rm between 2 and 5;
+
+-- 인라인뷰 (보통 게시판 만들때 이 구조를 사용해서 게시글을 가져오는 방식으로 사용한다.)
+select rm,b.*
+from (select rownum rm,a.*
+            from (select empno,ename,hiredate
+                          from emp
+                             order by hiredate asc) a
+            ) b
+where rm between 2 and 5;
+
+--인라인뷰형태로 만들며, 입사일이 가장 빠른 5명을 조회
+select rownum, empno,ename,hiredate
+from (select empno,ename,hiredate
+                 from emp
+                       order by hiredate asc)a
+where rownum <= 5;
+
+
+--시퀀스
+--자동으로 번호를 증가시키는 기능을 수행한다.
+--create, drop으로 처리한다.
+--nextval, currval
+
+--create sequence 시퀀스명
+--start with 시작값 -> 1
+--increment by 증가치 -> 1
+--max value 최대값 -> 10의 1027
+--min value 최대값 -> 10의 -1027
+--옵션의 순서는 상관없다.
+
+
+--시퀀스 생성하기
+create sequence dept_deptno_seq
+increment by 10
+start with 10;
+
+--생성한 시퀀스 조회하기
+select dept_deptno_seq.nextval
+from dual;
+--한번 더 조회하면 10에서 20으로 변경되어있음.
+--한번 증가하면 백 안됨. 증가하기만 함.
+
+--현재값을 확인하는 용도
+select dept_deptno_seq.currval
+from dual;
+
+drop sequence dept_deptno_seq;
+
+-- 새로운 시퀀스 생성
+create sequence emp_seq
+increment by 1
+start with 1
+maxvalue 1000;
+
+--기존에 있던 emp01테이블 삭제
+drop table emp01;
+
+--데이터는 없고 컬럼만 있는 테이블 생성
+create table emp01
+as
+select empno, ename, hiredate
+from emp
+where 1 <> 1;
+
+insert into emp01
+values (emp_seq.nextval, 'HONG',SYSDATE);
+-- 2부터 들어가는데 오라클 버그라서 시퀀스를 만들 때 0 으로 만들어야 1부터 차례차례 들어가게 된다.
+
+
+
+create table product(
+    pid varchar2(10),
+    pname varchar2(10),
+    price number(5),
+    
+    constraint product_pid_pk primary key(pid)
+);
+
+
+--1000단위부터 시작하는 시퀀스 생성
+create sequence idx_product_id
+start with 1000;
+
+--시퀀스를 문자열에 결합
+insert into product(pid, pname, price)
+values ('pid' || idx_product_id.nextval, '치즈',1000);
+
+select * from product;
+
+drop sequence idx_product_id;
+
+---------------------------------------------------------------
+
+--user01에게 객체 권한주기
+--grant 객체권한종류
+--on 객체명
+--to 계정명
+
+grant select
+on emp
+to user01;
+
+--객체 권한 회수하기
+revoke select
+on emp
+from user01;
+
+---------------------------------------------------------------
+
+grant select
+on emp
+to user04;
+
+--객체 권한 부여
+grant select
+on emp
+to mrole3;
+
+
+
+
+
