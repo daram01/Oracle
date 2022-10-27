@@ -1834,8 +1834,10 @@ declare
     vempno emp.empno%type;
     vename emp.ename%type;
 begin
-    select empno, ename into vempno, vename 
-    from emp;
+    select empno, ename
+    into vempno, vename  -- 필수
+    from emp
+    where empno = 7788; -- 필수
     
     dbms_output.put_line(vempno || '' || vename);
 exception 
@@ -1850,6 +1852,7 @@ end;
 --table type
 declare
     -- table type (배열의 형식) - 사용자 정의 변수 타입이며 크기가 따로 지정되어있지 않다. 
+    -- 오라클 sql에서는 배열이 1부터 시작함(이클립스랑 헷갈리면 안된다.)
     -- vename varchar2(10)
     -- TYPE (사용할 변수 타입 이름) is table of (실제 변수 타입)
     -- index by 
@@ -2041,8 +2044,9 @@ end;
 /
 
 
+
 declare
---%rowtype : 테이블의 모든 컬럼의 이름과 변수를 참조하겠다. 
+--%rowtype : 테이블의 모든 컬럼의 이름과 타입을 참조하겠다. 
 --컬럼명이 변수명으로 사용되고, 컬럼의 타입을 변수의 타입으로 사용한다.
     vemp emp%rowtype ;
     
@@ -2145,7 +2149,6 @@ begin
 end;
 /
 
-
 --다중 if문
 
 declare
@@ -2245,10 +2248,10 @@ end;
 /
 
 
-declare
+declare --선언하다
     vdept dept%rowtype;
     n number := 1;
-begin
+begin -- 시작하다
     while(n <= 4) loop
         select *
         into vdept
@@ -2259,3 +2262,236 @@ begin
     end loop;
 end;
 /
+
+
+
+
+---------------------------------------------------------------------------------------------
+--2022.10.27
+
+set serveroutput on;
+
+--저장 프로시저 ( 기존에 사용하던건 1회성 프로시저, 익명블록 )
+--1. 생성(create) -> 2. 실행 (execute or exec)
+--create or replace procedure [프로시저이름(매개변수)]
+--is || as 선언부 - 변수 정의
+--begin 실행부 - sql문, 출력문, 조건문, 반복문... 작성
+--end;
+--/
+
+drop table emp01;
+
+create table emp01
+as
+select * from emp;
+
+select * from emp01;
+
+--생성
+create or replace procedure emp01_print
+is
+    vempno number(10);
+    vename varchar2(10);
+begin
+    vempno := 1111;
+    vename := 'HONG';
+    
+    dbms_output.put_line(vempno || '/' || vename);
+end;
+/
+
+--실행
+execute emp01_print;
+
+--emp01_delete 프로시저 생성
+create or replace procedure emp01_delete
+is
+begin
+    --emp01 테이블의 데이터 삭제
+    delete from emp01;
+end;
+/
+--emp01 테이블의 데이터를 삭제한 것을 실행
+execute emp01_delete;
+
+select * from emp01;
+
+
+--선택한 레코드만 지우는 프로시저
+                                                                    --변수이름  --레퍼러스방식
+create or replace procedure del_ename(vename emp01.ename%type)
+is
+begin
+    delete from emp01
+    --vename이라는 매개변수를 사용하여 삭제를 하겠다.
+    where ename = vename; 
+end;
+/
+
+execute del_ename('SCOTT');
+
+select * from emp01;
+
+--사원 중 SMITH 삭제하기.
+--한번 만들어놓은 저장프로시저는 이렇게 여러번 사용이 가능하다.
+execute del_ename('SMITH');
+
+
+-- 저장프로시저의 매개변수 유형
+-- in, out, in out
+-- in : 값을 전달받는 용도
+-- out : 프로시저 내부의 실행 결과를 실행을 요청한 쪽으로 값을 전달
+--in out : 호출할 때 값을 입력받은 후 실행 결과 값을 반환
+
+--사번을 통해서 특정 사원을 조회하고 싶을 때
+create or replace procedure sel_empno 
+(
+    vempno in emp.empno%type, -- emp테이블의 empno 데이터 타입을 vempno에 복사
+    vename out emp.ename%type, -- 호출한 쪽으로 값을 반환하기 때문에 out 모드
+    vsal out emp.sal%type,
+    vjob out emp.job%type
+)
+is
+begin
+    select ename, sal, job
+    into vename,vsal,vjob -- 여기서 위의 create구문으로 값을 넘겨준다.
+    from emp
+    where empno = vempno;
+end;
+/
+
+--바인드변수
+variable var_ename varchar2(15); --변수 선언
+variable var_sal number; -- number는 크기 따로 지정 안하고 타입만 
+variable var_job varchar2(9);
+
+execute sel_empno(7499,:var_ename,:var_sal,:var_job);
+
+print var_ename;
+print var_sal;
+print var_job;
+
+
+--문제 - 사원 정보를 저장하는 저장 프로시저를 만드세요
+-- 사번, 이름, 직책, 매니저, 부서
+-- 사원 정보는 매개변수를 사용해서 받아온다.
+
+drop table emp02;
+
+create table emp02
+as
+select empno, ename, job, mgr, deptno
+from emp
+where 1 <> 1;
+
+select * from emp02;
+
+
+
+create or replace procedure insert_sawon
+(
+    vempno in emp02.empno%type,
+    vename in emp02.ename%type,
+    vjob in emp02.job%type,
+    vmgr in emp02.mgr%type,
+    vdeptno in emp02.deptno%type
+)
+is
+
+begin
+    insert 
+    into  emp02
+    values(vempno,vename, vjob, vmgr, vdeptno);
+end;
+/
+
+execute insert_sawon(1111,'HONG','SALESMAN',2222,10);
+
+select * from emp02;
+
+-- 저장 함수
+-- 저장 함수와 저장 프로시저의 차이점 : return값 유무
+-- 1. 생성(create) 2.실행(execute)
+--create or replace function 함수명(매개변수)
+--    return 값의 타입 -- 세미콜론 생략
+--is
+--    변수정의
+--begin
+--    sql구문
+--    출력함수
+--    조건문, 반복문 등...
+--    return 리턴값;
+--end;
+--/
+
+
+create or replace function cal_bonus(vempno emp.empno%type)
+    return number
+is
+    vsal number(7,2);
+begin
+    select sal
+    into vsal
+    from emp
+    where empno = vempno;
+    
+    return vsal * 200;
+end;
+/
+
+variable var_res number;
+
+execute :var_res := cal_bonus(7788); -- execute 뒤에 변수를 선언한다.
+
+print var_res;
+
+-- 커서
+--declare
+    --커서 : select 구문이 실행하는 결과를 가리킨다.
+    --cursor 커서명 is sql구문(select); 커서의 선언
+--begin
+    --open 커서명;
+    --loop
+          --fetch 커서명 into 변수명 - 테이블로부터 가져와서 변수에 저장하는 역할
+          --exit when 커서명%notfound;
+    --end loop;
+    --close 커서명;
+--end;
+--/
+set serveroutput on;
+
+declare
+    cursor c1 is select * from emp;
+    vemp emp%rowtype;
+begin
+    open c1;
+        loop
+            fetch c1 into vemp;
+            exit when c1%notfound;
+            dbms_output.put_line(vemp.empno || ' / ' || vemp.ename || ' / ' || vemp.job|| ' / ' || vemp.mgr || ' / ' 
+                                                || vemp.hiredate || ' / ' || vemp.sal || ' / ' || vemp. comm || ' / ' || vemp.deptno);
+        end loop;
+    close c1;
+end;
+/
+
+
+--for문
+declare
+    cursor c2 is select * from dept;
+    vdept dept%rowtype;
+begin
+    for vdept in c2 loop
+        exit when c2%notfound;
+        dbms_output.put_line(vdept.deptno || ' / ' || vdept.dname || ' / ' || vdept.loc);
+    end loop;
+end;
+/
+    
+
+
+
+
+
+
+
